@@ -494,3 +494,58 @@ PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
 64 bytes from 8.8.8.8: icmp_seq=3 ttl=109 time=1.71 ms
 ```
  We have done it. Now we are able to ping outside
+ 
+ 
+ 
+ 
+ ### What is NAT?
+
+Network Address Translation (NAT) is a process in which one or more local IP address is translated into one or more Global IP address and vice versa in order to provide Internet access to the local hosts. NAT generally operates on a router or firewall.
+
+**Network address translation (NAT) working –** Generally, the border router is configured for NAT i.e the router which has one interface in the local (inside) network and one interface in the global (outside) network. When a packet traverse outside the local (inside) network, then NAT converts that local (private) IP address to a global (public) IP address. When a packet enters the local network, the global (public) IP address is converted to a local (private) IP address.
+
+### What is SNAT?
+
+SNAT represents Source NAT. Source NAT is used when an internal user starts a connection with an external Host. Therefore, the layer 3 device on which we already configured NAT, interprets the private IP address of the Host to Public IP. It can also interpret the source port in the TCP or UDP protocol headers.
+
+It can create an outbound connection, an ephemeral port is used to support the destination with a port on which to communicate and keep a distinct traffic stream. When these ephemeral ports are used for SNAT, they are known as SNAT ports. By definition, each IP address has 65,535 ports.
+
+### What is DNAT?
+
+DNAT stands for Destination NAT and is used when an external Host with a Public IP, starts a connection towards our Internal/Private Network. Therefore, the same layer 3 device, transforms the public IP address of that host to the private IP of the internal Host/Server.
+
+The Destination NAT is configured for the Demilitarized Zone (DMZ). In the DMZ, it can generally put our Server with Private IP addresses. Therefore, public users can create them with the support of Destination NAT (DNAT).
+
+### What is Web Socket?
+
+**WebSocket:** WebSocket is bidirectional, a full-duplex protocol that is used in the same scenario of client-server communication, unlike HTTP it starts from **ws://** or **wss://**. It is a stateful protocol, which means the connection between client and server will keep alive until it is terminated by either party (client or server). After closing the connection by either of the client and server, the connection is terminated from both ends.
+
+Let’s take an example of client-server communication, there is the client which is a web browser and a server, whenever we initiate the connection between client and server, the client-server made the handshaking and decide to create a new connection and this connection will keep alive until terminated by any of them. When the connection is established and alive the communication takes place using the same connection channel until it is terminated.
+
+![WebSocket-Connection](https://github.com/HasanTareq73/GCP-Study-Guide/blob/a35a95eb7e5e1589a61cad44dcddbcdc62886dca/image/WebSocket-Connection.png)
+
+**When can a web socket be used:**
+
+-   **Real-time web application:** Real-time web application uses a web socket to show the data at the client end, which is continuously being sent by the backend server. In WebSocket, data is continuously pushed/transmitted into the same connection which is already open, that is why WebSocket is faster and improves the application performance. For e.g. in a trading website or bitcoin trading, for displaying the price fluctuation and movement data is continuously pushed by the backend server to the client end by using a WebSocket channel.
+-   **Gaming application:** In a Gaming application, you might focus on that, data is continuously received by the server, and without refreshing the UI, it will take effect on the screen, UI gets automatically refreshed without even establishing the new connection, so it is very helpful in a Gaming application.
+-   **Chat application:** Chat applications use WebSockets to establish the connection only once for exchange, publishing, and broadcasting the message among the subscribers. It reuses the same WebSocket connection, for sending and receiving the message and for one-to-one message transfer.
+
+**When not to use WebSocket:**
+
+WebSocket can be used if we want any real-time updated or continuous streams of data that are being transmitted over the network. If we want to fetch old data, or want to get the data only once to process it with an application we should go with **HTTP protocol**, old data which is not required very frequently or fetched only once can be queried by the simple HTTP request, so in this scenario, it’s better not use WebSocket.
+
+**Note:** RESTful web services are sufficient to get the data from the server if we are loading the data only once.
+
+### ****What is Network Function Virtualization (NFV)****
+
+The telecom industry sometimes has a way of making even the smartest of us feel lost, confused, and occasionally even a little dumb. Just when you’ve figured out the latest hot buttons in the industry buzz – cloud computing, OpenFlow and software defined networking ([SDN](https://www.blueplanet.com/architecture?campaign=X561615&src=blog)) – along comes another new concept for you to get your head around.
+
+The latest new concept is called [Network Functions Virtualization](https://www.blueplanet.com/products/nfv-orchestration.html?campaign=X561615&src=blog), or NFV, and it has rightfully taken its place in the industry conversation as another step towards creating more agile, lower cost network infrastructure.
+
+Network Function Virtualization, or NFV, is a way to reduce cost and accelerate service deployment for network operators by decoupling functions like a firewall or encryption from dedicated hardware and moving them to virtual servers.
+
+For example, instead of deploying a new hardware appliance across the network to enable network encryption, encryption software can be deployed on a standardized server or switch already in the network.
+
+This virtualization of network functions reduces dependency on dedicated hardware appliances for network operators, and allows for improved scalability and customization across the entire network. Different from a virtualized network, NFV seeks to offload network functions only, rather than the entire network.
+
+![NFV-Image](https://github.com/HasanTareq73/GCP-Study-Guide/blob/a35a95eb7e5e1589a61cad44dcddbcdc62886dca/image/NFV-image-v2.jpg)
