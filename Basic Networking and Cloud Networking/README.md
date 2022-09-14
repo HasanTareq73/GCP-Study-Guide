@@ -245,27 +245,252 @@ To create both veth pairs, use the command:
 
 ```bash
 sudo ip link add veth-ns1 type veth peer name bridge-ns1-veth
-
 sudo ip link add veth-ns2 type veth peer name bridge-ns2-veth
-
 ```
 
 Now when you look at the devices you will see your veth pairs on the host network.
 
 ```bash
 ip link list
-
 ```
 
 Now that we have a veth pair in the host namespace, let’s move the ns1 and ns2 sides of the cables out into the ns1 and ns2 namespaces.
 
 ```bash
 sudo ip link set veth-ns1 netns ns1
-
 sudo ip link set veth-ns2 netns ns2
-
 ```
 
 Now if you check `ip link`, you will see the bridge-ns1-veth and bridge-ns2-veth is **missing**, because it **belongs** to **ns1 and ns2** now.
 
-After that, Connect the other side of the cable **veth-ns1 and veth-ns2** into the **vBridge**
+After that, Connect the other side of the cable **veth0** into the **Bridge**
+
+```bash
+sudo ip link set bridge-ns1-veth master vBridge
+sudo ip link set bridge-ns1-veth master vBridge
+```
+
+## **Stablish NS1 to Bridge Communication**
+
+Our objective is here to stablish communication between Namespace **ns1** to Bridge vBridge
+
+Enter into **ns1** namespace and check the interfaces.
+
+```bash
+sudo nsenter --net=/var/run/netns/netns1
+ip link
+```
+
+We need to turn **UP** both the lo (_loopback interface_) and bridge-ns1-veth and assign an **IP address** to bridge-ns1-veth
+
+```bash
+ip link set lo up
+ip link set  bridge-ns1-veth up
+ip addr add 10.0.0.10/24 dev  bridge-ns1-veth
+exit
+```
+
+logging out from Namespace **netns1**
+
+We are in **RootNS** now, turn **UP** the veth-ns1 interface
+
+```bash
+sudo ip link set veth-ns1 up
+```
+
+Now, log into the **ns1** and **ping** to vBridge (10.0.0.1)
+
+```bash
+ping 10.0.0.1
+```
+
+Output
+
+```
+PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.
+64 bytes from 10.0.0.1: icmp_seq=1 ttl=64 time=0.065 ms
+64 bytes from 10.0.0.1: icmp_seq=2 ttl=64 time=0.047 ms
+64 bytes from 10.0.0.1: icmp_seq=3 ttl=64 time=0.047 ms
+```
+
+Communication between Namespace to Bridge is Successful.
+
+****NS1 to RootNS Communication:****
+
+Now we have try to communicate NS1 to RootNS via bridge.
+
+```mermaid
+graph LR
+A(NS1) --> B(Bridge) --> C(RootNS:Ether)
+```
+
+log into the Namespace **netns1** and **ping** to 10.31.16.101 (RootNS IP address)
+
+```bash
+$ sudo nsenter --net=/var/run/netns/ns1
+$ ping 10.31.16.101
+
+output: 
+
+ping: connect: Network is unreachable
+
+$ route
+output: 
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+10.0.0.0     0.0.0.0         255.255.255.0        U     0     0      0 veth-ns1
+```
+
+So we need add a default gateway in route table so that **any not matching** IP address will be forwarded via vBridge ****interface having IP **10.0.0.1**
+
+Ok let's add the default gateway into the Routing Table of NS1
+
+```bash
+ip route add default via 10.0.0.1
+route -n
+```
+
+Let's ping to RootNS again
+
+```bash
+ping 10.31.16.101
+```
+
+Output:
+
+```bash
+PING 10.31.16.101 (10.31.16.101) 56(84) bytes of data.
+64 bytes from 10.31.16.101: icmp_seq=1 ttl=64 time=0.049 ms
+64 bytes from 10.31.16.101: icmp_seq=2 ttl=64 time=0.045 ms
+64 bytes from 10.31.16.101: icmp_seq=3 ttl=64 time=0.066 ms
+```
+
+Communication successful between NS1 to RootNS , Now we try communication 8.8.8.8 or others destination from NS1
+
+```mermaid
+graph LR
+A(NS1) --ping --> B(Bridge) --ping--> C(RootNS:Ether) --ping--> D((8.8.8.8))
+```
+
+Let's ping **8.8.8.8** from **ns1**
+
+```bash
+ping 8.8.8.8
+```
+
+Output:
+
+```bash
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+```
+
+Now this scenario is little bit tricky, it's not like the Network is unreachable but some how the packet is blocked or stuck in between somewhere. Lucky that Linux has a utility bin named **tcpdump** to observe the network interfaces to **debug** the **packet flow**.
+
+### **Packet Debugging**
+
+Now open a new SSH session and observe our gateway vBridge in **RootNS** first.
+
+```bash
+sudo tcpdump -i vBridge icmp
+```
+
+Output:
+
+```bash
+listening on br0, link-type EN10MB (Ethernet), capture size 262144 bytes
+07:29:55.680062 IP ip-192-168-0-2.ap-south-1.compute.internal > dns.google: ICMP echo request, id 63613, seq 2156, length 64
+07:29:56.704054 IP ip-192-168-0-2.ap-south-1.compute.internal > dns.google: ICMP echo request, id 63613, seq 2157, length 64
+07:29:57.728056 IP ip-192-168-0-2.ap-south-1.compute.internal > dns.google: ICMP echo request, id 63613, seq 2158, length 64
+```
+
+Looks like vBridge is receiving icmp packets, but how about eth0. Let's check **eth0** interface now.
+
+```bash
+sudo tcpdump -i eth0 icmp
+```
+
+Output:
+
+```bash
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+```
+
+Ops! No packets, There is something wrong. Let's check IPv4 forwarding **/proc/sys/net/ipv4/ip_forward**
+
+```bash
+cat /proc/sys/net/ipv4/ip_forward
+```
+
+output: 0
+
+**Root Cause**: IP Forwarding is diabled. Lets **Enable IP Forwarding**
+
+```bash
+sudo nano /proc/sys/net/ipv4/ip_forward
+```
+
+change it from 0 to 1 and save it, then check it again
+
+```bash
+cat /proc/sys/net/ipv4/ip_forward
+```
+
+output: 1
+
+Now observe eth0 again
+
+```bash
+sudo tcpdump -i eth0 icmp
+```
+
+Output:
+
+```bash
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+07:39:04.544093 IP ip-10-0-0-10.ap-south-1.compute.internal > dns.google: ICMP echo request, id 63613, seq 2692, length 64
+07:39:05.568071 IP ip-10-0-0-10.ap-south-1.compute.internal > dns.google: ICMP echo request, id 63613, seq 2693, length 64
+07:39:06.592091 IP ip-10-0-0-10.ap-south-1.compute.internal > dns.google: ICMP echo request, id 63613, seq 2694, length 64
+```
+
+But still the ping is stuck in **ns1** why is that? Notice! that the source ip is 10.0.0.10 which is trying to reach out to the google dns 8.8.8.8. with source ip 10.0.0.10 which is a **private ip**
+
+### **Why I can not access internet through Private IP ?**
+
+Think of your **IP address** like your **full postal address**. Letters sent to you from anywhere get delivered by the post service reading the address and getting it to the right place.
+
+A **Private IP** address is like having **my bedroom** as the **whole address**. It's Useful inside the house, but of **no use** whatsoever for a letter **trying to reach** you **from another country**. The poor postman does not know where to start, so the letter gets put in the bin. and you get no data.
+
+Simply put, where would the return packets go? You may be able to send a packet out (_though it’d probably be dropped by a firewall rather early_), but how would anyone get a packet **back to you**? Packets are solely addressed by IP address, and private IPs are, by design, **not unique**. If you do manage to get a packet to a server with a return address of **192.168.0.2**, where would it send its answer?
+
+### **Solution**
+
+To resolve this problem we somehow need to convert the private ip to public ip. This is called **[NAT](https://whatismyipaddress.com/nat)** (_Network Address Translation_)
+
+We need to add a **SNAT** (_Source NAT_) rule in **IP Table** into the **POSTROUTING** chain
+
+```bash
+sudo iptables -t nat -A POSTROUTING -s 10.0.0.0/24 ! -o vBridge -j MASQUERADE
+```
+
+We have Done **Souce IP NAT** here, it means we are appending (-A) an IP MASQUERADE Rule into the NAT table (-t) where packets coming from source network (-s) 10.0.0.0/24 via output (-o) interface vBridge
+
+More about [iptables](https://medium.com/skilluped/what-is-iptables-and-how-to-use-it-781818422e52)
+
+Now Log into the Namespace **netns1** and try to ping 8.8.8.8 again
+
+```bash
+sudo nsenter --net=/var/run/netns/ns1
+ping 8.8.8.8
+```
+
+Output:
+
+```
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=109 time=1.67 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=109 time=1.68 ms
+64 bytes from 8.8.8.8: icmp_seq=3 ttl=109 time=1.71 ms
+```
+ We have done it. Now we are able to ping outside
