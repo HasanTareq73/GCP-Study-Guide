@@ -167,7 +167,7 @@ You might already be familiar with VMs: a guest operating system such as Linux o
 
 Docker is a set of platform as a service products that use OS-level virtualization to deliver software in packages called containers. The service has both free and premium tiers. The software that hosts the containers is called Docker Engine.
 
-### ### What is Network Namespace?
+### What is Network Namespace?
 
 Linux network namespaces are a Linux kernel feature allowing us to isolate network environments through virtualization. For example, using network namespaces, you can create separate network interfaces and routing tables that are isolated from the rest of the system and operate independently.
 
