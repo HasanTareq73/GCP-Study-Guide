@@ -72,7 +72,7 @@ Upper and Lower layers further divide network architecture into seven different 
 -   Data-link (Layer-2)
 -   Physical layers (Layer-1)
 
-![092119_0729_LayersofOSI1.webp](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/6f4ae7c9-162e-4109-aee7-5af7143b014a/092119_0729_LayersofOSI1.webp)
+![osi-model.webp](https://github.com/HasanTareq73/GCP-Study-Guide/blob/d30dda0e29fa32effe5b60c278e0f0c60883c5bf/image/osi-model.webp)
 
 ![OSI-Layer-Please-Do-Not-Tell-Secret-Passwords-Anytime-blackMORE-Ops-1 (1).png](https://github.com/HasanTareq73/GCP-Study-Guide/blob/e1236eadd657fc4227ff9273a79ac89542672f68/image/OSI-Layer-Please-Do-Not-Tell-Secret-Passwords-Anytime-blackMORE-Ops-1%20(1).png)
 
